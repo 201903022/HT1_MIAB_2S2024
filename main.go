@@ -1,12 +1,11 @@
 package main
 
 import (
+	"HT1_MIAB_2S2024/structures"
 	"bufio"
 	"errors"
 	"fmt"
 	"os"
-
-	structures "./structures" // Import the structures packages
 )
 
 const fullPath = "/home/jonathan/MIAB_2S/HT1/HT1_MIAB_2S2024/dataSheet.mia"
