@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 )
 
 const fullPath = "/home/jonathan/MIAB_2S/HT1/HT1_MIAB_2S2024/dataSheet.mia"
@@ -50,8 +51,16 @@ func addStudent(scanner *bufio.Scanner) {
 	toAdd := &Add{}
 	toAdd.tipo = "1"
 	fmt.Println("Ingrese el id del estudiante:")
-	if scanner.Scan() {
-		toAdd.Id = scanner.Text()
+	for {
+		if scanner.Scan() {
+			//Validar ID unico
+			if !validateId(scanner.Text()) {
+				fmt.Println("Ingrese nuevamente el id del estudiante:")
+			} else {
+				toAdd.Id = scanner.Text()
+				break
+			}
+		}
 	}
 
 	fmt.Println("Ingrese el CUI del estudiante:")
@@ -77,7 +86,7 @@ func addStudent(scanner *bufio.Scanner) {
 	copy(stuToAdd.Nombre[:], toAdd.Nombre)
 	copy(stuToAdd.Carnet[:], toAdd.Carnet)
 	stuToAdd.WriteToFile(fullPath)
-	fmt.Println("Todo bien hasta aca")
+	//fmt.Println("Todo bien hasta aca")
 
 }
 
@@ -85,9 +94,21 @@ func addTeacher(scanner *bufio.Scanner) {
 	toAdd := &Add{}
 	toAdd.tipo = "2"
 	fmt.Println("Ingrese el id del profesor:")
-	if scanner.Scan() {
-		toAdd.Id = scanner.Text()
+	for {
+		if scanner.Scan() {
+			//Validar ID unico
+			if !validateId(scanner.Text()) {
+				fmt.Println("Ingrese nuevamente el id del profesor:")
+			} else {
+				toAdd.Id = scanner.Text()
+				break
+			}
+		}
 	}
+
+	//if scanner.Scan() {
+	//	toAdd.Id = scanner.Text()
+	//}
 
 	fmt.Println("Ingrese el CUI del profesor:")
 	if scanner.Scan() {
@@ -112,7 +133,7 @@ func addTeacher(scanner *bufio.Scanner) {
 	copy(teachToAdd.Nombre[:], toAdd.Nombre)
 	copy(teachToAdd.Curso[:], toAdd.Carnet)
 	teachToAdd.WriteToFile(fullPath)
-	fmt.Println("Todo bien hasta aca")
+	//fmt.Println("Todo bien hasta aca")
 }
 
 func writeFile(file *os.File, sizeInBytes int) error {
@@ -162,38 +183,6 @@ func createDataSheet(size int, unit string) error {
 
 }
 
-func readDataSheet() {
-	file, err := os.Open(fullPath)
-	if err != nil {
-		fmt.Println("error al abrir la datasheet")
-		return
-	}
-	defer file.Close()
-
-	offset := int64(0)
-	//stuSize := binary.Size(structures.Student{})
-	//teachSize := binary.Size(structures.Teacher{})
-	//var stundents []structures.Student
-	//var teachers []structures.Teacher
-
-	for {
-		_, err = file.Seek(offset, 0)
-
-		if err != nil {
-			fmt.Println("error al buscar el offset")
-			return
-		}
-
-		tipo := make([]byte, 1)
-		_, err = file.Read(tipo)
-		if err != nil {
-			break
-		}
-
-	}
-
-}
-
 func readDataSheet1() {
 	file, err := os.Open(fullPath)
 	if err != nil {
@@ -232,10 +221,10 @@ func readDataSheet1() {
 			}
 			students = append(students, student)
 			offset += int64(stuSize)
-			fmt.Println("Estudiante leido")
-			fmt.Println(offset)
+			//fmt.Println("Estudiante leido")
+			//fmt.Println(offset)
 		} else if tipo == '2' {
-			fmt.Println("leyendo profesor")
+			//fmt.Println("leyendo profesor")
 			// Leer profesor
 			var teacher structures.Teacher
 			err = teacher.ReadFromFile(fullPath, offset)
@@ -261,4 +250,78 @@ func readDataSheet1() {
 	for _, teacher := range teachers {
 		fmt.Println(teacher.ToShow())
 	}
+}
+
+func validateId(id string) bool {
+
+	//len debe ser 5
+	if len(id) > 5 {
+		fmt.Println("El id debe tener como maximo 5 caracteres")
+		return false
+	}
+	isUnic := true
+	file, err := os.Open(fullPath)
+	if err != nil {
+		fmt.Println("error al abrir la datasheet")
+		return false
+	}
+	defer file.Close()
+	offset := int64(0)
+	stuSize := binary.Size(structures.Student{})
+	teachSize := binary.Size(structures.Teacher{})
+	for {
+		_, err = file.Seek(offset, 0)
+		//fmt.Println("offset: ", offset)
+		if err != nil {
+			fmt.Println("error al buscar el offset")
+			return false
+		}
+		var tipo byte
+		err = binary.Read(file, binary.LittleEndian, &tipo)
+		if err != nil {
+			break
+		}
+		//fmt.Println("tipo: ", string(tipo))
+		if tipo == '1' {
+			var student structures.Student
+			err = student.ReadFromFile(fullPath, offset)
+			if err != nil {
+				fmt.Println("Error leyendo estudiante:", err)
+				return false
+			}
+			//fmt.Println("id estudiante: ", string(student.Id_Estu[:]))
+			//fmt.Println("id a verficar: ", id)
+			studentId := strings.TrimSpace(string(student.Id_Estu[:]))
+			studentId = strings.Trim(studentId, "\x00")
+			//size of cadenas
+			//fmt.Println("size of cadenas: ", len(studentId), len(id))
+			if studentId == id {
+				fmt.Println("El id ya existe")
+				isUnic = false
+				break
+			}
+			offset += int64(stuSize)
+		} else if tipo == '2' {
+			var teacher structures.Teacher
+			err = teacher.ReadFromFile(fullPath, offset)
+			if err != nil {
+				fmt.Println("Error leyendo profesor:", err)
+				return false
+			}
+			//fmt.Println("id profesor: ", string(teacher.Id_profesor[:]))
+			//fmt.Println("id a verficar: ", id)
+			teacherId := strings.TrimSpace(string(teacher.Id_profesor[:]))
+			teacherId = strings.Trim(teacherId, "\x00")
+			if teacherId == id {
+				isUnic = false
+				fmt.Println("El id ya existe")
+				break
+			}
+			offset += int64(teachSize)
+		} else {
+			fmt.Println("Tipo desconocido:", tipo)
+			break
+		}
+	}
+	return isUnic
 }

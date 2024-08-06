@@ -19,7 +19,7 @@ type Student struct {
 //Write to file
 
 func (s *Student) WriteToFile(fullPath string) error {
-	fmt.Println("writeToFile")
+	//fmt.Println("writeToFile")
 	file, err := os.OpenFile(fullPath, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return fmt.Errorf("Error al abrir la dataSheet en Studen WriteToFile")
