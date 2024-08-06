@@ -8,11 +8,12 @@ import (
 )
 
 type Student struct {
-	Tipo    [2]byte  //tipo
+	Tipo    [1]byte  //tipo
 	Id_Estu [5]byte  //id_estdui
 	CUI     [13]byte //cui
 	Nombre  [25]byte //nombre
-	Carnet  [10]byte //carnet 201903022
+	Carnet  [25]byte //carnet 201903022
+	//total size =	69
 }
 
 //Write to file
@@ -26,8 +27,9 @@ func (s *Student) WriteToFile(fullPath string) error {
 	defer file.Close()
 
 	stuSize := binary.Size(*s)
+	fmt.Println("stuSize", stuSize)
 
-	offset, err := findFreeBlock(file, stuSize)
+	offset, err := FindFreeBlock(file, stuSize)
 	if err != nil {
 		return fmt.Errorf("Error findFreeBlock Studntent WriteToFile")
 	}
@@ -36,14 +38,31 @@ func (s *Student) WriteToFile(fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("Error en file Seek Student WrtiteToFile")
 	}
-
+	fmt.Println("offset", offset)
 	err = binary.Write(file, binary.LittleEndian, s)
 	if err != nil {
 		return fmt.Errorf("Error en binary.Write Stundet WriteToFile")
 	}
 	return nil
 }
+func (s *Student) ReadFromFile(fullPath string, offset int64) error {
+	file, err := os.Open(fullPath)
+	if err != nil {
+		return fmt.Errorf("Error al abrir la dataSheet en Student ReadFromFile")
+	}
+	defer file.Close()
 
+	_, err = file.Seek(offset, 0)
+	if err != nil {
+		return fmt.Errorf("Error en file Seek Student ReadFromFile")
+	}
+
+	err = binary.Read(file, binary.LittleEndian, s)
+	if err != nil {
+		return fmt.Errorf("Error en binary.Read Student ReadFromFile")
+	}
+	return nil
+}
 func (s Student) ToShow() string {
 	return fmt.Sprintf("Carnet: %s, CUI: %s, Name: %s, ID: %s",
 		strings.TrimSpace(string(s.Carnet[:])),
@@ -55,10 +74,12 @@ func (s Student) ToShow() string {
 
 //find a freeBlock
 
-func findFreeBlock(file *os.File, blocksize int) (int64, error) {
+func FindFreeBlock(file *os.File, blocksize int) (int64, error) {
 
 	buffer := make([]byte, blocksize)
 	var offset int64 //posicion actual
+	fmt.Println("blocksize", blocksize)
+	fmt.Println("offset: ", offset)
 	for {
 		_, err := file.ReadAt(buffer, offset)
 		if err != nil {
@@ -77,6 +98,7 @@ func findFreeBlock(file *os.File, blocksize int) (int64, error) {
 			return offset, nil
 		}
 
+		fmt.Println("offset: ", offset)
 		offset += int64(blocksize)
 
 	}

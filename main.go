@@ -3,6 +3,7 @@ package main
 import (
 	"HT1_MIAB_2S2024/structures"
 	"bufio"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +12,7 @@ import (
 const fullPath = "/home/jonathan/MIAB_2S/HT1/HT1_MIAB_2S2024/dataSheet.mia"
 
 type Add struct {
-	tipo   int64
+	tipo   string
 	Carnet string
 	Nombre string
 	CUI    string
@@ -33,7 +34,11 @@ func main() {
 		switch input {
 		case "1":
 			addStudent(scanner)
-
+		case "2":
+			addTeacher(scanner)
+		case "3":
+			readDataSheet1()
+			//readDataSheet()
 		case "4":
 			return
 		}
@@ -43,7 +48,7 @@ func main() {
 
 func addStudent(scanner *bufio.Scanner) {
 	toAdd := &Add{}
-	toAdd.tipo = 1
+	toAdd.tipo = "1"
 	fmt.Println("Ingrese el id del estudiante:")
 	if scanner.Scan() {
 		toAdd.Id = scanner.Text()
@@ -66,17 +71,19 @@ func addStudent(scanner *bufio.Scanner) {
 
 	fmt.Printf("Estudiante ingresado: %+v\n", toAdd)
 	stuToAdd := &structures.Student{}
+	copy(stuToAdd.Tipo[:], toAdd.tipo)
 	copy(stuToAdd.Id_Estu[:], toAdd.Id)
 	copy(stuToAdd.CUI[:], toAdd.CUI)
 	copy(stuToAdd.Nombre[:], toAdd.Nombre)
 	copy(stuToAdd.Carnet[:], toAdd.Carnet)
 	stuToAdd.WriteToFile(fullPath)
+	fmt.Println("Todo bien hasta aca")
 
 }
 
 func addTeacher(scanner *bufio.Scanner) {
 	toAdd := &Add{}
-	toAdd.tipo = 0
+	toAdd.tipo = "2"
 	fmt.Println("Ingrese el id del profesor:")
 	if scanner.Scan() {
 		toAdd.Id = scanner.Text()
@@ -97,7 +104,15 @@ func addTeacher(scanner *bufio.Scanner) {
 		toAdd.Carnet = scanner.Text()
 	}
 
-	fmt.Printf("Estudiante ingresado: %+v\n", toAdd)
+	fmt.Printf("Profesor ingresado: %+v\n", toAdd)
+	teachToAdd := &structures.Teacher{}
+	copy(teachToAdd.Tipo[:], toAdd.tipo)
+	copy(teachToAdd.Id_profesor[:], toAdd.Id)
+	copy(teachToAdd.CUI[:], toAdd.CUI)
+	copy(teachToAdd.Nombre[:], toAdd.Nombre)
+	copy(teachToAdd.Curso[:], toAdd.Carnet)
+	teachToAdd.WriteToFile(fullPath)
+	fmt.Println("Todo bien hasta aca")
 }
 
 func writeFile(file *os.File, sizeInBytes int) error {
@@ -145,4 +160,105 @@ func createDataSheet(size int, unit string) error {
 
 	return writeFile(file, sizeInbytes)
 
+}
+
+func readDataSheet() {
+	file, err := os.Open(fullPath)
+	if err != nil {
+		fmt.Println("error al abrir la datasheet")
+		return
+	}
+	defer file.Close()
+
+	offset := int64(0)
+	//stuSize := binary.Size(structures.Student{})
+	//teachSize := binary.Size(structures.Teacher{})
+	//var stundents []structures.Student
+	//var teachers []structures.Teacher
+
+	for {
+		_, err = file.Seek(offset, 0)
+
+		if err != nil {
+			fmt.Println("error al buscar el offset")
+			return
+		}
+
+		tipo := make([]byte, 1)
+		_, err = file.Read(tipo)
+		if err != nil {
+			break
+		}
+
+	}
+
+}
+
+func readDataSheet1() {
+	file, err := os.Open(fullPath)
+	if err != nil {
+		fmt.Println("error al abrir la datasheet")
+		return
+	}
+	defer file.Close()
+
+	offset := int64(0)
+	stuSize := binary.Size(structures.Student{})
+	teachSize := binary.Size(structures.Teacher{})
+	var students []structures.Student
+	var teachers []structures.Teacher
+
+	for {
+		_, err = file.Seek(offset, 0)
+		if err != nil {
+			fmt.Println("error al buscar el offset")
+			return
+		}
+
+		// Leer el primer byte para determinar el tipo
+		var tipo byte
+		err = binary.Read(file, binary.LittleEndian, &tipo)
+		if err != nil {
+			break // End of file
+		}
+
+		if tipo == '1' {
+			// Leer estudiante
+			var student structures.Student
+			err = student.ReadFromFile(fullPath, offset)
+			if err != nil {
+				fmt.Println("Error leyendo estudiante:", err)
+				return
+			}
+			students = append(students, student)
+			offset += int64(stuSize)
+			fmt.Println("Estudiante leido")
+			fmt.Println(offset)
+		} else if tipo == '2' {
+			fmt.Println("leyendo profesor")
+			// Leer profesor
+			var teacher structures.Teacher
+			err = teacher.ReadFromFile(fullPath, offset)
+			if err != nil {
+				fmt.Println("Error leyendo profesor:", err)
+				return
+			}
+			teachers = append(teachers, teacher)
+			offset += int64(teachSize)
+		} else {
+			fmt.Println("Tipo desconocido:", tipo)
+			break
+		}
+	}
+
+	// Mostrar los resultados
+	fmt.Println("Estudiantes:")
+	for _, student := range students {
+		fmt.Println(student.ToShow())
+	}
+
+	fmt.Println("Profesores:")
+	for _, teacher := range teachers {
+		fmt.Println(teacher.ToShow())
+	}
 }
