@@ -34,7 +34,7 @@ func (t *Teacher) WriteToFile(fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("Error en file Seek Teacher WriteToFile")
 	}
-	fmt.Println("offset profesor: ", offset)
+	//fmt.Println("offset profesor: ", offset)
 	err = binary.Write(file, binary.LittleEndian, t)
 	if err != nil {
 		return fmt.Errorf("Error en binary.Write Teacher WriteToFile")

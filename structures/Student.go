@@ -27,7 +27,7 @@ func (s *Student) WriteToFile(fullPath string) error {
 	defer file.Close()
 
 	stuSize := binary.Size(*s)
-	fmt.Println("stuSize", stuSize)
+	//fmt.Println("stuSize", stuSize)
 
 	offset, err := FindFreeBlock(file, stuSize)
 	if err != nil {
@@ -38,7 +38,7 @@ func (s *Student) WriteToFile(fullPath string) error {
 	if err != nil {
 		return fmt.Errorf("Error en file Seek Student WrtiteToFile")
 	}
-	fmt.Println("offset", offset)
+	//fmt.Println("offset", offset)
 	err = binary.Write(file, binary.LittleEndian, s)
 	if err != nil {
 		return fmt.Errorf("Error en binary.Write Stundet WriteToFile")
@@ -78,8 +78,8 @@ func FindFreeBlock(file *os.File, blocksize int) (int64, error) {
 
 	buffer := make([]byte, blocksize)
 	var offset int64 //posicion actual
-	fmt.Println("blocksize", blocksize)
-	fmt.Println("offset: ", offset)
+	//fmt.Println("blocksize", blocksize)
+	//fmt.Println("offset: ", offset)
 	for {
 		_, err := file.ReadAt(buffer, offset)
 		if err != nil {
@@ -98,7 +98,7 @@ func FindFreeBlock(file *os.File, blocksize int) (int64, error) {
 			return offset, nil
 		}
 
-		fmt.Println("offset: ", offset)
+		//fmt.Println("offset: ", offset)
 		offset += int64(blocksize)
 
 	}
